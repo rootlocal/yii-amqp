@@ -1,12 +1,14 @@
 <?php
+
 /**
  * Class CAMQP
  * AMQP extension wrapper to communicate with RabbitMQ server
+ *
+ * @property \PhpAmqpLib\Connection\AMQPConnection $connect This Connect loading
+ * @property \PhpAmqpLib\Channel\AMQPChannel $channel This Channel loading
  */
 class CAMQP extends CApplicationComponent
 {
-
-	public $vhost;
 
 	/**
 	 * @var string
@@ -29,22 +31,52 @@ class CAMQP extends CApplicationComponent
 	public $password = 'guest';
 
 	/**
-	 * @var null
+	 * @var string
 	 */
-	private $_connect;
+	public $vhost = '/';
 
 	/**
-	 * @var null
+	 * @var \PhpAmqpLib\Connection\AMQPConnection
 	 */
-	private $_channel;
+	private $_connect = null;
+
+	/**
+	 * @var \PhpAmqpLib\Channel\AMQPChannel
+	 */
+	private $_channel = null;
+
+	/**
+	 * Connect loading
+	 * @return \PhpAmqpLib\Connection\AMQPConnection
+	 */
+	public function getConnect()
+	{
+		if($this->_connect === null){
+			$this->_connect = new \PhpAmqpLib\Connection\AMQPConnection(
+				$this->host, $this->port, $this->login, $this->password, $this->vhost);
+		}
+
+		return $this->_connect;
+	}
+
+	/**
+	 * Chanel loading
+	 * @return \PhpAmqpLib\Channel\AMQPChannel
+	 */
+	public function getChannel()
+	{
+		if($this->_channel === null){
+			$this->_channel = $this->getConnect()->channel();
+		}
+
+		return $this->_channel;
+	}
 
 
 	public function init()
 	{
 		parent::init();
 		Yii::setPathOfAlias('PhpAmqpLib', __DIR__.'/vendor/videlalvaro/php-amqplib/PhpAmqpLib');
-		$this->_connect = new PhpAmqpLib\Connection\AMQPConnection($this->host, $this->port, $this->login, $this->password);
-		$this->_channel = $this->_connect->channel();
 	}
 
 
@@ -58,22 +90,21 @@ class CAMQP extends CApplicationComponent
 	 */
 	public function declareExchange($name, $type = 'fanout', $passive = false, $durable = true, $auto_delete = false)
 	{
-
-		return $this->_channel->exchange_declare($name, $type, $passive, $durable, $auto_delete);
+		return $this->getChannel()->exchange_declare($name, $type, $passive, $durable, $auto_delete);
 	}
 
 
 	/**
 	 * @param $name
 	 * @param bool $passive
-	 * @param bool $durable  the queue will survive server restarts
-	 * @param bool $exclusive  the queue can be accessed in other channels
+	 * @param bool $durable the queue will survive server restarts
+	 * @param bool $exclusive the queue can be accessed in other channels
 	 * @param bool $auto_delete (false) the queue won't be deleted once the channel is closed.
 	 * @return mixed
 	 */
 	public function declareQueue($name, $passive = false, $durable = false, $exclusive = false, $auto_delete = false)
 	{
-		return $this->_channel->queue_declare($name, $passive, $durable, $exclusive, $auto_delete);
+		return $this->getChannel()->queue_declare($name, $passive, $durable, $exclusive, $auto_delete);
 	}
 
 	/**
@@ -83,7 +114,7 @@ class CAMQP extends CApplicationComponent
 	 */
 	public function bindQueueExchanger($queueName, $exchangeName, $routingKey = '')
 	{
-		$this->_channel->queue_bind($queueName, $exchangeName, $routingKey);
+		$this->getChannel()->queue_bind($queueName, $exchangeName, $routingKey);
 	}
 
 	/**
@@ -103,21 +134,18 @@ class CAMQP extends CApplicationComponent
 				'delivery_mode' => 2
 			));
 
-		$this->_channel->basic_publish($toSend, $exchangeName, $routingKey);
-
-		//$msg = $this->_channel->basic_get('q1');
-		//var_dump($msg);
+		$this->getChannel()->basic_publish($toSend, $exchangeName, $routingKey);
 	}
 
 	public function closeConnection()
 	{
-		$this->_channel->close();
-		$this->_connect->close();
+		$this->getChannel()->close();
+		$this->getChannel()->close();
 	}
 
 	public function exchangeDelete($name)
 	{
-		$this->_channel->exchange_delete($name);
+		$this->getChannel()->exchange_delete($name);
 	}
 
 }

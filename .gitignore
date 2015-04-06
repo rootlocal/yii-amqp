@@ -1,4 +1,31 @@
-assets/
-protected/runtime/
-themes/classic/views/
-/mailer
+vendor/
+.idea/*
+
+*.*~
+*.pydevproject
+.project
+.metadata
+*.swp
+.jsdtscope
+.buildpath
+*.prefs
+org.eclipse.wst.jsdt.ui.superType.*
+
+# External tool builders
+
+# Locally stored "Eclipse launch configurations"
+*.launch
+
+.DS_Store
+
+# Files that might appear on external disk
+.Spotlight-V100
+.Trashes
+
+# Windows image file caches
+Thumbs.db
+
+# Folder config file
+Desktop.ini
+
+Session.vim

@@ -140,7 +140,7 @@ class CAMQP extends CApplicationComponent
 	public function closeConnection()
 	{
 		$this->getChannel()->close();
-		$this->getChannel()->close();
+		$this->getConnect()->close();
 	}
 
 	public function exchangeDelete($name)

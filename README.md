@@ -8,35 +8,69 @@ AMQP extension wrapper to communicate with RabbitMQ server. Based on **videlalva
 
 Yii congif file:
 ```php
-  'components' => [
-      'amqp' => ['class' => 'application.extensions.yii-amqp.CAMQP'],
-      ...
+'components' => [
+	'amqp' => ['class' => 'application.extensions.yii-amqp.CAMQP'],
+	...
 ```
 or
 ```php
-  'components' => [
-      'amqp' => [
-          'class' => 'application.extensions.yii-amqp.CAMQP',
-          'host' => '127.0.0.1',
-          'port' => '5672',
-          'login'=>'quest',
-          'password'=>'quest',
-          'vhost'=>'/',
-      ],
-      ...
+'components' => [
+	'amqp' => [
+		'class' => 'application.extensions.yii-amqp.CAMQP',
+		'host' => '127.0.0.1',
+		'port' => '5672',
+		'login'=>'quest',
+		'password'=>'quest',
+		'vhost'=>'/',
+	],
+	...
 ```
-Yii controller (publisher) with fanout/direct/topic
+
+#Hello World example
+
+##Yii controller (publisher) with fanout/direct/topic:
 ```php
-    $message = 'myMessage';
-    $exName = 'exTopic';
-    $routingKey1 = 'server1.user.error';
-    $routingKey2 = 'server1.pentest.error';
-    $routingKey3 = 'server2.user.error';
-    //Yii::app()->amqp->exchangeDelete($exName);
-    Yii::app()->amqp->declareExchange($exName, $type = 'topic', $passive = false, $durable = true, $auto_delete = false);
-    Yii::app()->amqp->publish_message($message, $exName, $routingKey1, $content_type = '',  $app_id = '');
-    Yii::app()->amqp->publish_message($message, $exName, $routingKey2, $content_type = '',  $app_id = '');
-    Yii::app()->amqp->publish_message($message, $exName, $routingKey3, $content_type = '', $app_id = '');
-    Yii::app()->amqp->closeConnection();
+	Yii::app()->amqp->declareQueue('hello');
+	Yii::app()->amqp->publish_message('Hello World', '', 'hello');
+	Yii::app()->amqp->closeConnection();
 ```
-Some clients (consumer,listener,executor with fanout/direct/topic types) see `/demo/yii-consumer-*` examples.
+##Consumer:
+```php
+/**
+ * Class TestCommand
+ * @property CAMQP $amqp
+ */
+ class TestCommand extends CConsoleCommand
+ {
+ 	 /**
+ 	 * @var null
+ 	 */
+ 	private $amqp = null;
+ 	
+ 	public function __construct($name, $runner)
+ 	{
+ 		$this->amqp = Yii::app()->amqp;
+ 		parent::__construct($name, $runner);
+	}
+	
+	public function actionListen()
+	{
+		$this->amqp->declareQueue('hello');
+		$this->amqp->channel->basic_consume('hello', '', false, true, false, false, array($this, 'processOrder'));
+		
+		while(count($this->amqp->channel->callbacks)){
+			$this->amqp->channel->wait();
+		}
+		
+		$this->amqp->closeConnection();
+	}
+
+	 /**
+	 * @param $msg
+	 */
+	public function processOrder($msg)
+	{
+		echo $msg->body.PHP_EOL;
+	}
+}
+```
